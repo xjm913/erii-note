@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
 
 :root {
   --background: #ffffff;
@@ -23,4 +24,61 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+.prose {
+  line-height: 1.7;
+}
+
+.prose :where(h1, h2, h3) {
+  margin-top: 0.25rem;
+  margin-bottom: 0.5rem;
+  font-weight: 700;
+}
+
+.prose h1 {
+  font-size: 1.3rem;
+}
+
+.prose h2 {
+  font-size: 1.15rem;
+}
+
+.prose p {
+  margin: 0.35rem 0;
+}
+
+.prose ul {
+  list-style: disc;
+  padding-left: 1.25rem;
+}
+
+.prose ol {
+  list-style: decimal;
+  padding-left: 1.25rem;
+}
+
+.prose :where(ul, ol) li::marker {
+  color: rgb(248 113 113 / 0.9);
+}
+
+.prose blockquote {
+  margin: 0.5rem 0;
+  border-left: 3px solid rgb(239 68 68 / 0.7);
+  padding-left: 0.75rem;
+  color: rgb(229 231 235);
+  font-style: normal;
+}
+
+.prose a {
+  color: rgb(251 113 133);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.prose :not(pre) > code {
+  border-radius: 0.35rem;
+  background: rgb(0 0 0 / 0.35);
+  color: rgb(252 165 165);
+  padding: 0.08rem 0.35rem;
 }

@@ -1,6 +1,11 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+// --- 🚨 新增：排版与高亮工具 ---
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 
 // 定义消息的类型
 interface Message {
@@ -114,7 +119,39 @@ export default function ChatPage() {
                   : "bg-black/70 text-white/95 rounded-tl-sm" // 绘梨衣的气泡：深邃黑
                   }`}
               >
-                {msg.content}
+                {/* 🚨 替换开始：使用 Markdown 引擎渲染，并劫持 code 标签进行高亮 */}
+                {/* react-markdown 新版移除了 className，需由外层容器承载排版类名 */}
+                <div className="prose prose-invert max-w-none break-words">
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    components={{
+                      // 劫持所有的 <code> 标签
+                      code({ node, inline, className, children, ...props }: any) {
+                        const match = /language-(\w+)/.exec(className || "");
+                        return !inline && match ? (
+                          // 如果是多行代码块，使用 SyntaxHighlighter 进行高亮渲染
+                          <SyntaxHighlighter
+                            {...props}
+                            style={vscDarkPlus}
+                            language={match[1]}
+                            PreTag="div"
+                            className="rounded-md my-2 text-sm shadow-black/50 shadow-inner"
+                          >
+                            {String(children).replace(/\n$/, "")}
+                          </SyntaxHighlighter>
+                        ) : (
+                          // 如果是单行代码（比如 `npm install`），做个简单的红字轻量背景高亮
+                          <code {...props} className="bg-black/40 text-red-300 px-1.5 py-0.5 rounded text-sm font-mono">
+                            {children}
+                          </code>
+                        );
+                      },
+                    }}
+                  >
+                    {msg.content}
+                  </ReactMarkdown>
+                </div>
+                {/* 🚨 替换结束 */}
               </div>
             </div>
           ))}
