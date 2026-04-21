@@ -20,6 +20,7 @@ export default function ChatPage() {
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isUploading, setIsUploading] = useState(false); // 🚨 新增：防抖与上传状态提示
 
   // 用于自动滚动到底部的引用
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -101,6 +102,44 @@ export default function ChatPage() {
       setIsLoading(false);
     }
   };
+  // 🚨 新增：处理文件上传的核心逻辑
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+
+    // 💡 前端老兵秒懂：物理文件必须用 FormData 打包，绝对不能用 JSON.stringify
+    const formData = new FormData();
+    formData.append("file", file); // 这里的 "file" 必须和后端 API 接收的参数名一模一样
+
+    try {
+      // 在屏幕上先给用户一个反馈
+      setMessages((prev) => [...prev, { role: "user", content: `[📎 上传了文件: ${file.name}]` }]);
+
+      const response = await fetch("http://localhost:8000/api/upload", {
+        method: "POST",
+        // ⚠️ 极其关键的暗坑：用 fetch 发送 FormData 时，千万不要手动设置 Content-Type！
+        // 浏览器会自动帮你设置成 multipart/form-data 并加上随机 boundary 边界符
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (data.status === "success") {
+        setMessages((prev) => [...prev, { role: "erii", content: `Sakura，我已经收到文件了哦，后端说：${data.message}` }]);
+      } else {
+        setMessages((prev) => [...prev, { role: "erii", content: `抱歉，文件读取失败了：${data.message}` }]);
+      }
+    } catch (error) {
+      console.error("上传错误:", error);
+      setMessages((prev) => [...prev, { role: "erii", content: "网络好像断开了..." }]);
+    } finally {
+      setIsUploading(false);
+      // 清空 input 的 value，保证下次传同一个文件也能触发 onChange
+      e.target.value = "";
+    }
+  };
 
   return (
     <div
@@ -170,6 +209,25 @@ export default function ChatPage() {
 
       {/* 底部输入区 */}
       <div className="w-full max-w-3xl flex gap-3 pb-8">
+        {/* 🚨 新增：极其优雅的隐藏式文件上传组件 */}
+        <div className="relative flex items-center justify-center">
+          <input
+            type="file"
+            id="file-upload"
+            accept=".txt,.md" // 目前后端咱们只写了解析文本，先限制一下格式
+            className="hidden" // 隐藏极其丑陋的原生 input
+            onChange={handleFileUpload}
+            disabled={isUploading}
+          />
+          <label
+            htmlFor="file-upload"
+            className={`cursor-pointer rounded-full p-2 text-xl transition-all ${isUploading ? "text-gray-500 bg-gray-200/20" : "text-white hover:bg-white/20"
+              }`}
+            title="上传文档"
+          >
+            {isUploading ? "⏳" : "📎"}
+          </label>
+        </div>
         <input
           type="text"
           value={input}
