@@ -76,21 +76,24 @@ export default function ChatPage() {
           if (done) break;
 
           // 3. 把网络传输的二进制碎片，解码成真正的字符串
-          const chunkText = decoder.decode(value, { stream: true })
+          const chunkText = decoder.decode(value, { stream: true });
 
-          // 4. 把新蹦出来的字，实时拼接到最后一条消息（绘梨衣的气泡）里
-          setMessages((prev) => {
-            const newMessages = [...prev]
-            const lastIndex = newMessages.length - 1
-            newMessages[lastIndex].content += chunkText
-            return newMessages
-          })
+          // 🚨 核心优化：打字机平滑节流器
+          // 我们不直接把一坨字塞进状态，而是把它们拆成单字，匀速吐出
+          for (const char of chunkText) {
+            setMessages((prev) => {
+              const newMessages = [...prev];
+              const lastIndex = newMessages.length - 1;
+              newMessages[lastIndex].content += char;
+              return newMessages;
+            });
+
+            // ⏳ 强行注入 20ms 的人工敲击延迟（你可以根据手感调大调小）
+            // 注意这里是在 await，它会产生微小的背压（Backpressure），让打字极其匀速丝滑
+            await new Promise((resolve) => setTimeout(resolve, 20));
+          }
         }
       }
-
-
-
-
 
     } catch (error) {
       console.error("跨次元通讯失败:", error);
