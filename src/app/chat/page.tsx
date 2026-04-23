@@ -21,6 +21,7 @@ export default function ChatPage() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false); // 🚨 新增：防抖与上传状态提示
+  const [isClearing, setIsClearing] = useState(false);
 
   // 用于自动滚动到底部的引用
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -84,12 +85,15 @@ export default function ChatPage() {
             setMessages((prev) => {
               const newMessages = [...prev];
               const lastIndex = newMessages.length - 1;
-              newMessages[lastIndex].content += char;
+
+              // 🚨 核心修复：必须深拷贝最后一个消息对象，绝对不能直接修改原对象的内存地址！
+              newMessages[lastIndex] = {
+                ...newMessages[lastIndex],
+                content: newMessages[lastIndex].content + char
+              };
+
               return newMessages;
             });
-
-            // ⏳ 强行注入 20ms 的人工敲击延迟（你可以根据手感调大调小）
-            // 注意这里是在 await，它会产生微小的背压（Backpressure），让打字极其匀速丝滑
             await new Promise((resolve) => setTimeout(resolve, 20));
           }
         }
@@ -144,13 +148,31 @@ export default function ChatPage() {
     }
   };
 
+  // 🚨 新增：触发清空后端的函数
+  const handleClearDocs = async () => {
+    if (confirm("确定要让绘梨衣忘掉刚才上传的文档吗？")) {
+      setIsClearing(true);
+      try {
+        await fetch("http://localhost:8000/api/clear-docs", { method: "DELETE" });
+        // 极其贴心的产品细节：在聊天界面模拟一条系统提示，告诉用户清空成功
+        setMessages((prev) => [...prev, {
+          role: "erii",
+          content: "【系统提示】：我已经把刚才看过的文档忘光啦，现在只凭自己的记忆和你聊天~ 🧹"
+        }]);
+      } catch (error) {
+        console.error("清空失败", error);
+      } finally {
+        setIsClearing(false);
+      }
+    }
+  };
+
   return (
     <div
-      className="min-h-screen bg-cover bg-center flex flex-col items-center p-4 font-sans"
+      className="min-h-screen bg-cover bg-center bg-fixed flex flex-col items-center p-4 font-sans"
       // 这里我放了一张极具龙族氛围的二次元红黑樱花图直链
       style={{ backgroundImage: "url('/erii-chat.png')" }}
     >
-      {/* 聊天记录展示区：去掉了边框和背景模糊，通透感拉满 */}
       <div className="flex-1 w-full max-w-3xl flex flex-col mb-6 overflow-hidden pt-10">
         <div className="overflow-y-auto space-y-6 pr-2 pb-4 flex-1">
           {messages.map((msg, idx) => (
@@ -212,6 +234,15 @@ export default function ChatPage() {
 
       {/* 底部输入区 */}
       <div className="w-full max-w-3xl flex gap-3 pb-8">
+        {/* 🧹 新增：一键清空知识库按钮 */}
+        <button
+          onClick={handleClearDocs}
+          disabled={isClearing || isLoading}
+          className="flex-shrink-0 rounded-full p-2 text-xl text-white hover:bg-red-500/50 transition-all disabled:opacity-50"
+          title="清空已上传的文档"
+        >
+          {isClearing ? "⏳" : "🧹"}
+        </button>
         {/* 🚨 新增：极其优雅的隐藏式文件上传组件 */}
         <div className="relative flex items-center justify-center">
           <input
