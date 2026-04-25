@@ -42,7 +42,7 @@ export default function ChatPage() {
 
     try {
       // 🚨 核心跨次元呼叫：请求 Python 后端
-      const response = await fetch("http://localhost:8000/api/chat", {
+      const response = await fetch("/api/chat", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -124,7 +124,7 @@ export default function ChatPage() {
       // 在屏幕上先给用户一个反馈
       setMessages((prev) => [...prev, { role: "user", content: `[📎 上传了文件: ${file.name}]` }]);
 
-      const response = await fetch("http://localhost:8000/api/upload", {
+      const response = await fetch("/api/upload", {
         method: "POST",
         // ⚠️ 极其关键的暗坑：用 fetch 发送 FormData 时，千万不要手动设置 Content-Type！
         // 浏览器会自动帮你设置成 multipart/form-data 并加上随机 boundary 边界符
@@ -153,7 +153,7 @@ export default function ChatPage() {
     if (confirm("确定要让绘梨衣忘掉刚才上传的文档吗？")) {
       setIsClearing(true);
       try {
-        await fetch("http://localhost:8000/api/clear-docs", { method: "DELETE" });
+        await fetch("/api/clear-docs", { method: "DELETE" });
         // 极其贴心的产品细节：在聊天界面模拟一条系统提示，告诉用户清空成功
         setMessages((prev) => [...prev, {
           role: "erii",
